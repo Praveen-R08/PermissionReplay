@@ -10,12 +10,12 @@ let saved = {};
 let storageAvailable = true;
 try { saved = JSON.parse(localStorage.getItem(storageKey) || '{}') || {}; }
 catch { storageAvailable = false; }
-let current = catalog[0];
+let current, site;
 let history, index, timer, renderedHistory;
 let comparison = false;
 
 function save() {
- saved[current.id] = history;
+ saved[replayKey(current)] = history;
  if (!storageAvailable) return;
  try { localStorage.setItem(storageKey, JSON.stringify(saved)); }
  catch { storageAvailable = false; }
@@ -30,15 +30,19 @@ function stop() {
  timer = null;
 }
 
+function replayKey(entry) {
+ return site.origin + site.pathname + " " + entry.id;
+}
+
 function select(entry, reset = false) {
  stop();
  current = entry;
- history = (!reset && Array.isArray(saved[entry.id]) && saved[entry.id].length) ? saved[entry.id] : [startFrame()];
+ const previous = saved[replayKey(entry)];
+ history = !reset && Array.isArray(previous) && previous.length ? previous : [startFrame()];
  renderedHistory = null;
  index = history.length - 1;
  element('reportStatus').textContent = '';
  if (reset) save();
- renderCatalog();
  render();
 }
 
@@ -77,34 +81,6 @@ function record(action) {
  render();
 }
 
-function addOptions(id, first, values) {
- element(id).append(new Option(first, ''), ...values.map(value => new Option(value, value)));
-}
-
-function renderCatalog() {
- const query = element('search').value.trim().toLowerCase();
- const category = element('category').value;
- const kind = element('kind').value;
- const matches = catalog.filter(entry =>
-  (!category || entry.category === category) && (!kind || entry.type === kind) &&
-  [entry.name, entry.category, entry.type, entry.purpose].join(' ').toLowerCase().includes(query));
- element('results').textContent = matches.length + ' of ' + catalog.length + ' scenarios';
- element('catalogList').replaceChildren(...matches.map(entry => {
-  const button = document.createElement('button');
-  const title = document.createElement('span');
-  const type = document.createElement('small');
-  title.textContent = entry.name;
-  type.textContent = entry.type;
-  button.append(title, type);
-  button.setAttribute('aria-pressed', String(entry === current));
-  button.onclick = () => {
-   if (entry !== current) select(entry);
-   element('catalogList').querySelector('[aria-pressed="true"]')?.focus();
-  };
-  return button;
- }));
-}
-
 function seek(step) {
  stop();
  index = step;
@@ -117,7 +93,7 @@ function render() {
  const [type, allow, deny, revoke, typeNote] = labels[current.type];
  const supportsDuration = ['location', 'camera', 'microphone'].includes(current.id);
  const content = {
-  address: current.id + '.example', siteName: current.name + ' demo', task: current.purpose + '.',
+  address: site.hostname, siteName: current.name + ' example', task: current.purpose + '.',
   permissionName: current.name, state: frame.state, instructions: latest ? 'Alternative: ' + current.alternative + '.' : 'Replay view. Return to the final step to make another choice.',
   type, typeNote, allow: supportsDuration ? 'Allow this visit' : allow, deny, revoke, effect: frame.effect,
   live: frame.active ? current.live : 'None',
@@ -176,11 +152,6 @@ function exportReport() {
  element('reportStatus').textContent = 'Exported the full replay as a text report.';
 }
 
-addOptions('category', 'All categories', [...new Set(catalog.map(entry => entry.category))].sort());
-addOptions('kind', 'All access types', Object.keys(labels));
-element('search').oninput = renderCatalog;
-element('category').onchange = renderCatalog;
-element('kind').onchange = renderCatalog;
 for (const action of ['allow', 'remember', 'deny', 'fallback', 'revoke', 'revisit']) element(action).onclick = () => record(action);
 element('scrubber').oninput = event => seek(Number(event.target.value));
 element('reset').onclick = () => select(current, true);
@@ -200,4 +171,3 @@ element('play').onclick = () => {
  }, 900);
  render();
 };
-select(current);

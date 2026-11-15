@@ -1,8 +1,8 @@
 # Permission Replay
 
-Permission Replay is a browser privacy simulator. Paste a public HTTPS URL to inspect its HTML, Permissions-Policy response header, and a bounded set of same-origin scripts. Each finding links to a scenario where you can simulate granting, denying, or ending access with fictional data.
+Permission Replay is a browser privacy simulator. Paste a public HTTPS URL to inspect its HTML and a bounded set of same-origin scripts for evidence of permission requests. Each detected option links to a scenario where you can simulate granting, denying, or ending access with fictional data.
 
-The scanner reads source without executing it. A match indicates a potential request and can come from code that never runs in your browser. Requests triggered after sign-in or in dynamically loaded code can be missed. The catalog also works independently of URL scanning.
+The scanner reads source without executing it. A match indicates a potential request and can come from code that never runs in your browser. Requests triggered after sign-in or in dynamically loaded code can be missed.
 
 ## Build
 
