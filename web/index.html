@@ -11,9 +11,10 @@
 <h2 id="scanHeading">Preview a website</h2>
 <p>Enter a public HTTPS URL. We look for permission-request calls in the page and selected same-site scripts.</p>
 <form id="scanForm"><input id="siteUrl" type="text" inputmode="url" maxlength="1800" required aria-label="Website URL" placeholder="example.com"><button id="scanButton" class="primary">Scan website</button></form>
+<details><summary>Add a public help page</summary><p>Optional. Paste the site’s own support article that explains which browser access it requests.</p><input id="guideUrl" type="text" inputmode="url" maxlength="1800" aria-label="Public help page URL" placeholder="https://support.example.com/permissions"></details>
 <p>Scripts are read as text. A source match shows where the site could request access. Prompts that depend on clicks, login, or dynamically loaded code can be missed.</p>
 <p id="scanStatus" role="status" aria-live="polite"></p>
-<div id="scanOutput" hidden><h2 id="permissionHeading" hidden>Detected permission options</h2><ul id="scanFindings" class="scan-list"></ul><p id="scanCoverage"></p><a id="visitSite" rel="noopener noreferrer" target="_blank">Open website in a new tab</a></div>
+<div id="scanOutput" hidden><h2 id="permissionHeading" hidden>Permission options</h2><ul id="scanFindings" class="scan-list"></ul><p id="scanCoverage"></p><a id="visitSite" rel="noopener noreferrer" target="_blank">Open website in a new tab</a></div>
 </section>
 <div class="workspace" id="simulation" hidden>
 <div class="grid">

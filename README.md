@@ -4,6 +4,8 @@ Permission Replay is a browser privacy simulator. Paste a public HTTPS URL to in
 
 The scanner reads source without executing it. A match indicates a potential request and can come from code that never runs in your browser. Requests triggered after sign-in or in dynamically loaded code can be missed.
 
+When public source is incomplete, the app can show separately labeled options from built-in support articles or from a public help URL you supply. These are documented flows rather than observed prompts.
+
 ## Build
 
 Run `node worker/build.mjs` from the repository root. It produces `dist/server/index.js`, a Cloudflare Worker module that serves the frontend and handles `POST /api/scan`. The build uses Node.js built-in modules and needs no dependency installation.

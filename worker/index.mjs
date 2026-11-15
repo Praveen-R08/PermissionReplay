@@ -151,7 +151,7 @@ function collect(text, source, signals) {
  if (unresolved) signals.push({id:null, source, evidence:'getUserMedia( … ) — camera or microphone arguments could not be determined', kind:'Unresolved call'});
 }
 
-async function scan(input, signal) {
+async function fetchHtml(input, signal) {
  let page = address(input);
  let response;
  for (let count = 0; count <= 4; count++) {
@@ -171,6 +171,35 @@ async function scan(input, signal) {
  }
  if (!response.ok) throw Error('The website returned HTTP ' + response.status + '. Some sites block automated previews.');
  if (!/html/i.test(response.headers.get('content-type') || '')) throw Error('The URL did not return an HTML page.');
+ return {page, response};
+}
+
+const permissionTerms = {
+ camera:'camera|webcam', microphone:'microphone|mic', location:'location|geolocation',
+ notifications:'(?:desktop |browser |push )?notifications', 'screen-sharing':'screen shar(?:e|ing)|screen capture',
+ 'clipboard-read':'(?:read|access) (?:your |the )?clipboard|clipboard read',
+ bluetooth:'bluetooth devices?', usb:'usb devices?', 'serial-port':'serial ports?',
+ 'speaker-selection':'(?:audio output|speaker) devices?', 'local-network':'local network'
+};
+
+async function scanGuide(input, signal) {
+ const {page, response} = await fetchHtml(input, signal);
+ const {text} = await readLimited(response, 500000);
+ const content = text.replace(/<(script|style|template|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ')
+  .replace(/<\/(?:p|li|h[1-6]|div|section|tr)\s*>/gi, '\n').replace(/<[^>]+>/g, ' ')
+  .replace(/&(?:nbsp|amp|quot|#39);/gi, ' ');
+ const sentences = content.split(/[.?!\n]+/).map(part => part.replace(/\s+/g, ' ').trim());
+ return Object.entries(permissionTerms).flatMap(([id, term]) => {
+  const grant = new RegExp('\\b(?:allow|grant|enable|request|requires?|asks? for)\\b.{0,70}\\b(?:' + term + ')\\b|\\b(?:' + term + ')\\b.{0,18}\\b(?:permission|access)\\b', 'i');
+  const browser = /\b(?:browser|site permissions?|address bar|chrome|firefox|safari|edge)\b/i;
+  const denial = /\b(?:never|do not|does not|doesn.t|don.t|cannot|can.t|won.t|deny|disable|block)\b/i;
+  if (!sentences.some(sentence => sentence.length <= 330 && browser.test(sentence) && !denial.test(sentence) && grant.test(sentence))) return [];
+  return [{id, source:'Provided help page', sourceUrl:page.href, evidence:'The guide describes browser access for this option. Check the guide for when it applies.', kind:'Documented flow'}];
+ });
+}
+
+async function scan(input, signal) {
+ const {page, response} = await fetchHtml(input, signal);
  const policy = response.headers.get('permissions-policy') || '';
  const html = await readLimited(response, 500000);
  const signals = [];
@@ -225,7 +254,10 @@ export default {
    try {
     const body = await readLimited(request, 4096);
     if (body.truncated) throw Error('The URL is too long.');
-    return json(await scan(JSON.parse(body.text).url, controller.signal));
+    const input = JSON.parse(body.text);
+    return json(input.guide
+     ? {findings:await scanGuide(input.guide, controller.signal)}
+     : await scan(input.url, controller.signal));
    } catch (error) {
     if (controller.signal.aborted) return json({error:'The scan took too long to finish.', code:'timeout'}, 504);
     if (error instanceof ScanError) return json({error:error.message, code:error.code}, error.status);
